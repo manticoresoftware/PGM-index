@@ -145,14 +145,14 @@ protected:
             auto level_begin = segments.begin() + levels_offsets[l];
             auto pos = std::min<size_t>((*it)(key), std::next(it)->intercept);
             auto lo = level_begin + PGM_SUB_EPS(pos, EpsilonRecursive + 1);
+            auto level_size = levels_sizes[l];
 
             static constexpr size_t linear_search_threshold = 8 * 64 / sizeof(Segment);
             if constexpr (EpsilonRecursive <= linear_search_threshold) {
-                for (; std::next(lo)->key <= key; ++lo)
+                for (; std::distance(level_begin,lo)<level_size && std::next(lo)->key <= key; ++lo)
                     continue;
                 it = lo;
             } else {
-                auto level_size = levels_sizes[l];
                 auto hi = level_begin + PGM_ADD_EPS(pos, EpsilonRecursive, level_size);
                 it = std::upper_bound(lo, hi, key);
                 it = it == level_begin ? it : std::prev(it);
@@ -225,7 +225,7 @@ public:
      * @return the size of the index in bytes
      */
     size_t size_in_bytes() const {
-        return segments.size() * sizeof(Segment);
+        return segments.size() * sizeof(Segment) + levels_sizes.size() * sizeof(size_t) + levels_offsets.size() * sizeof(size_t);
     }
 };
 

@@ -31,10 +31,25 @@ inline omp_int_t omp_get_max_threads() { return 1; }
 
 namespace pgm::internal {
 
+#ifdef _MSC_VER
+
+template <class T>
+class T_IS_POD
+{
+    static_assert(sizeof(sizeof(T) < 8), "key_should_be_POD");
+};
+
+template<typename T>
+using LargeSigned = typename std::conditional_t<std::is_floating_point_v<T>,
+                                                long double,
+                                                std::conditional_t<(sizeof(T) < 8), int64_t, long double>>;
+#else
+
 template<typename T>
 using LargeSigned = typename std::conditional_t<std::is_floating_point_v<T>,
                                                 long double,
                                                 std::conditional_t<(sizeof(T) < 8), int64_t, __int128>>;
+#endif
 
 template<typename X, typename Y>
 class OptimalPiecewiseLinearModel {
@@ -62,7 +77,10 @@ private:
         X x{};
         SY y{};
 
-        Slope operator-(const Point &p) const { return {SX(x) - p.x, y - p.y}; }
+        Slope operator-(const Point &p) const {
+            SX dx = SX(x) - p.x;
+            return {dx, y - p.y};
+        }
     };
 
     template<bool Upper>
@@ -325,7 +343,11 @@ size_t make_segmentation_par(size_t n, size_t epsilon, Fin in, Fout out) {
     std::vector<std::vector<canonical_segment>> results(parallelism);
 
     #pragma omp parallel for reduction(+:c) num_threads(parallelism)
+#ifdef _MSC_VER
+    for (auto i = 0ll; i < parallelism; ++i) {
+#else
     for (auto i = 0ull; i < parallelism; ++i) {
+#endif
         auto first = i * chunk_size;
         auto last = i == parallelism - 1 ? n : first + chunk_size;
         if (first > 0) {
