@@ -239,4 +239,5 @@ TEST_CASE("PGM-index out of bonds", "[tmg]")
     
     pgm::PGMIndex<uint32_t> index(data.begin(), data.end());
     REQUIRE ( index.segments_count()==0 );
+    REQUIRE ( index.search(10).pos==0 );
 }
