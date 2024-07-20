@@ -198,10 +198,11 @@ public:
     ApproxPos search(const K &key) const {
         auto k = std::max(first_key, key);
         auto it = segment_for_key(k);
-        auto next = std::next(it);
         auto pos = (*it)(k);
-        if (next!=segments.end())
-            pos = std::min<size_t>(pos, next->intercept);
+        auto segId = it-segments.begin();
+        if ( segId<levels_sizes[0] )
+            pos = std::min<size_t>(pos, std::next(it)->intercept);
+
         auto lo = PGM_SUB_EPS(pos, Epsilon);
         auto hi = PGM_ADD_EPS(pos, Epsilon, n);
         return {pos, lo, hi};
